@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Bias Analyzer - Final Year Project</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 30px;
+            background: #1e1e1e;
+            color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 5px 5px 20px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s;
+        }
+        .container:hover {
+            transform: scale(1.02);
+        }
+        textarea, input {
+            width: 100%;
+            height: 40px;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #2c2c2c;
+            color: #ffffff;
+        }
+        button {
+            padding: 12px 25px;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            margin: 10px;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #e68900;
+        }
+        #report, #chart-container, #case-study {
+            margin-top: 20px;
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);
+        }
+        img {
+            width: 100%;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Decision Bias Analyzer</h1>
+        <p>Explore the hidden biases affecting your decisions and improve your critical thinking.</p>
+        <p>Bias is a natural part of human thinking. Our minds take shortcuts to make decisions, but these shortcuts sometimes lead to mistakes. Understanding biases helps in making better choices.</p>
+        <h3>Start Your Bias Analysis</h3>
+        <input id="username" placeholder="Enter your name">
+        <textarea id="decision" placeholder="Describe your decision..."></textarea>
+        <button onclick="startAnalysis()">Start Analysis</button>
+        <div id="questionnaire" style="display: none;"></div>
+        <div id="report"></div>
+        <div id="chart-container" style="display: none;">
+            <canvas id="biasChart"></canvas>
+        </div>
+        <div id="case-study" style="display: none;">
+            <h3>Real-World Bias Case Study</h3>
+            <p id="caseStudyText">Loading case study...</p>
+        </div>
+        <button onclick="downloadReport()">Download Personalized Report 📄</button>
+    </div>
+
+    <script>
+        let questions = {
+            "financial": [
+                "Did you choose this decision based on past experiences rather than data?",
+                "Were you more afraid of losing money than excited about gaining?"
+            ],
+            "relationship": [
+                "Did you assume someone's actions without asking for clarification?",
+                "Did emotions influence this decision more than logic?"
+            ],
+            "career": [
+                "Did you choose the easier option instead of a challenging one with more growth?",
+                "Were you influenced by what others think about this career path?"
+            ]
+        };
+        let userResponses = [];
+        let currentQuestions = [];
+        let currentQuestion = 0;
+        
+        function startAnalysis() {
+            let decisionText = document.getElementById("decision").value.toLowerCase();
+            if (decisionText.includes("money") || decisionText.includes("investment")) {
+                currentQuestions = questions.financial;
+            } else if (decisionText.includes("relationship") || decisionText.includes("friend")) {
+                currentQuestions = questions.relationship;
+            } else {
+                currentQuestions = questions.career;
+            }
+            document.getElementById("questionnaire").style.display = "block";
+            askQuestion();
+        }
+        
+        function askQuestion() {
+            if (currentQuestion < currentQuestions.length) {
+                document.getElementById("questionnaire").innerHTML = `
+                    <p>${currentQuestions[currentQuestion]}</p>
+                    <button onclick="recordResponse(1)">Agree</button>
+                    <button onclick="recordResponse(0)">Disagree</button>
+                `;
+            } else {
+                analyzeDecision();
+            }
+        }
+        
+        function recordResponse(answer) {
+            userResponses.push(answer);
+            currentQuestion++;
+            askQuestion();
+        }
+        
+        function analyzeDecision() {
+            let biasScore = userResponses.reduce((a, b) => a + b, 0);
+            let severity = biasScore > 1 ? "High Bias Detected" : "Low Bias";
+            document.getElementById("report").innerHTML = `<h3>Report for ${document.getElementById("username").value}</h3>
+                <p>Bias Score: ${biasScore} / ${userResponses.length}</p>
+                <p>Severity: ${severity}</p>`;
+            generateChart(userResponses);
+            loadCaseStudy();
+        }
+        
+        function generateChart(data) {
+            document.getElementById("chart-container").style.display = "block";
+            let ctx = document.getElementById("biasChart").getContext("2d");
+            new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: ["Emotional Bias", "Experience Bias", "Social Influence", "Loss Aversion"],
+                    datasets: [{
+                        label: "Bias Intensity",
+                        data: data,
+                        backgroundColor: ["red", "blue", "green", "purple"],
+                        borderColor: "black",
+                        borderWidth: 1
+                    }]
+                }
+            });
+        }
+        
+        function loadCaseStudy() {
+            document.getElementById("case-study").style.display = "block";
+            document.getElementById("caseStudyText").innerText = "A recent news article highlighted how groupthink led a major company to ignore red flags in a financial crisis, costing them millions. Understanding cognitive biases could have helped prevent this.";
+        }
+        
+        function downloadReport() {
+            const { jsPDF } = window.jspdf;
+            let doc = new jsPDF();
+            doc.text("Bias Analysis Report", 10, 10);
+            doc.text(document.getElementById("report").innerText, 10, 20);
+            doc.save("Bias_Report.pdf");
+        }
+    </script>
+</body>
+</html>
